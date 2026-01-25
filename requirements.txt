@@ -3,4 +3,3 @@ plotly
 ipykernel
 jupyter
 tqdm
-networkx
