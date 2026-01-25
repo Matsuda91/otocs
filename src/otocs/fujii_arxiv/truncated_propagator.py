@@ -25,7 +25,12 @@ def indices_bit_is_zero(
     return idx[((idx >> q_bit) & 1) == 0]
 
 
-def truncated_propagator_A(U: np.ndarray, N: int, i: int, j: int) -> np.ndarray:
+def truncated_propagator_A(
+    U: np.ndarray,
+    N: int,
+    i: int,
+    j: int,
+) -> np.ndarray:
     rows = indices_bit_is_zero(N, i)  # <0_i|
     cols = indices_bit_is_zero(N, j)  # |0_j>
     return U[np.ix_(rows, cols)]  # (2^(N-1), 2^(N-1))
@@ -43,21 +48,29 @@ def prepare_time_evolver(H: np.ndarray):
 
 
 def singular_values_and_thetas(A: np.ndarray):
-    result = np.linalg.svd(
+    result = linalg.svd(
         a=A,
+        compute_uv=False,
+        lapack_driver="gesvd",
     )
-    lam = np.clip(result.S, 0.0, 1.0)
+    lam = np.clip(result, 0.0, 1.0)
     theta = 2.0 * np.arccos(lam)
     return lam, theta
 
 
-def chebyshev_Tn(lam: np.ndarray, n: int) -> np.ndarray:
+def chebyshev_Tn(
+    lam: np.ndarray,
+    n: int,
+) -> np.ndarray:
     c = np.zeros(n + 1)
     c[n] = 1.0
     return chebval(lam, c)
 
 
-def moment_M_4k(lam: np.ndarray, k: int) -> float:
+def moment_M_4k(
+    lam: np.ndarray,
+    k: int,
+) -> float:
     order = int(4 * k)
     return float(np.mean(chebyshev_Tn(lam, order)))
 
