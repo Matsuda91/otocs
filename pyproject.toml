@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "otocs"
+dynamic = ["version"]
+authors = [{ name = "Ryo Matsuda" }]
+requires-python = ">=3.10,<3.13"
+description = "OTOC Spectroscopy Package"
+readme = "README.md"
+dependencies = [
+    "numpy",
+    "scipy",
+    "plotly",
+    "ipykernel",
+    "jupyter",
+    "tqdm",
+    "qulacs",
+    "qulacsvis",
+]

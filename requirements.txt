@@ -1,0 +1,6 @@
+numpy
+plotly
+ipykernel
+jupyter
+tqdm
+networkx
