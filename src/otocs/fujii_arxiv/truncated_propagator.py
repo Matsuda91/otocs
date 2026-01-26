@@ -168,7 +168,6 @@ def compute_fig1_theta_histograms(
             bins=theta_edges,
             density=True,
         )
-        # densities[ti, :] = hist
         densities.append(hist)
 
     densities = np.array(densities)
