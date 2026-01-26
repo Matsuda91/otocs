@@ -9,7 +9,7 @@ from collections import defaultdict
 from tqdm import tqdm
 
 
-def indices_bit_is_zero(
+def _indices_bit_is_zero(
     N: int,
     q: int,
     bit_type: Literal["lsb", "msb"] = "lsb",
@@ -25,18 +25,18 @@ def indices_bit_is_zero(
     return idx[((idx >> q_bit) & 1) == 0]
 
 
-def truncated_propagator_A(
+def _truncated_propagator_A(
     U: np.ndarray,
     N: int,
     i: int,
     j: int,
 ) -> np.ndarray:
-    rows = indices_bit_is_zero(N, i)  # <0_i|
-    cols = indices_bit_is_zero(N, j)  # |0_j>
+    rows = _indices_bit_is_zero(N, i)  # <0_i|
+    cols = _indices_bit_is_zero(N, j)  # |0_j>
     return U[np.ix_(rows, cols)]  # (2^(N-1), 2^(N-1))
 
 
-def prepare_time_evolver(H: np.ndarray):
+def _prepare_time_evolver(H: np.ndarray):
     E, V = linalg.eigh(H)
     Vdag = V.conj().T
 
@@ -47,7 +47,7 @@ def prepare_time_evolver(H: np.ndarray):
     return U
 
 
-def singular_values_and_thetas(A: np.ndarray):
+def _singular_values_and_thetas(A: np.ndarray):
     result = linalg.svd(
         a=A,
         compute_uv=False,
@@ -58,7 +58,7 @@ def singular_values_and_thetas(A: np.ndarray):
     return lam, theta
 
 
-def chebyshev_Tn(
+def _chebyshev_Tn(
     lam: np.ndarray,
     n: int,
 ) -> np.ndarray:
@@ -67,15 +67,15 @@ def chebyshev_Tn(
     return chebval(lam, c)
 
 
-def moment_M_4k(
+def _moment_M_4k(
     lam: np.ndarray,
     k: int,
 ) -> float:
     order = int(4 * k)
-    return float(np.mean(chebyshev_Tn(lam, order)))
+    return float(np.mean(_chebyshev_Tn(lam, order)))
 
 
-def is_hermitian(observable: qs.Observable) -> bool:
+def _is_hermitian(observable: qs.Observable) -> bool:
     if not observable.is_hermitian():
         raise ValueError("Observable must be Hermitian.")
 
@@ -87,7 +87,7 @@ def compute_fig2_moments(
     js: list[int] | None = None,
     k: int | None = None,  # 4k = 2,4,8,12  (k=1/2,1,2,3)
 ):
-    is_hermitian(observable)
+    _is_hermitian(observable)
     H = observable.get_matrix().toarray()
     N = int(np.log2(H.shape[0]))
     assert H.shape == (2**N, 2**N)
@@ -99,15 +99,15 @@ def compute_fig2_moments(
     if js is None:
         js = list(range(N))  # j=0..N-1
 
-    U_of_t = prepare_time_evolver(H)
+    U_of_t = _prepare_time_evolver(H)
     results = defaultdict(list)
     for _, j in tqdm(list(enumerate(js))):
         res = []
         for _, t in enumerate(times):
             U = U_of_t(float(t))
-            A = truncated_propagator_A(U, N, i=i, j=j)
-            lam, _ = singular_values_and_thetas(A)
-            res.append(moment_M_4k(lam, k=k))
+            A = _truncated_propagator_A(U, N, i=i, j=j)
+            lam, _ = _singular_values_and_thetas(A)
+            res.append(_moment_M_4k(lam, k=k))
         results[j] = res
 
     j_min = min(js)
@@ -142,7 +142,7 @@ def compute_fig1_theta_histograms(
     j: int,
     nbins: int = 80,
 ):
-    is_hermitian(observable)
+    _is_hermitian(observable)
 
     num_qubit = observable.get_qubit_count()
     if not (0 <= i < num_qubit):
@@ -153,16 +153,15 @@ def compute_fig1_theta_histograms(
     H = observable.get_matrix().toarray()
 
     N = int(np.log2(H.shape[0]))
-    U_of_t = prepare_time_evolver(H)
+    U_of_t = _prepare_time_evolver(H)
 
     theta_edges = np.linspace(0.0, np.pi, nbins + 1)
     theta_centers = 0.5 * (theta_edges[:-1] + theta_edges[1:])
-    # densities = np.zeros((len(times), nbins), dtype=np.float64)
     densities = []
     for _, t in tqdm(list(enumerate(times))):
         U = U_of_t(float(t))
-        A = truncated_propagator_A(U, N, i=i, j=j)
-        _, theta = singular_values_and_thetas(A)
+        A = _truncated_propagator_A(U, N, i=i, j=j)
+        _, theta = _singular_values_and_thetas(A)
 
         hist, _ = np.histogram(
             theta,
