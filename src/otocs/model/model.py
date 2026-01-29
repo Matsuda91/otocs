@@ -1,7 +1,8 @@
-import qulacs as qs
-import numpy as np
-from typing import Literal
 from abc import ABC, abstractmethod
+from typing import Literal
+
+import numpy as np
+import qulacs as qs
 
 
 class Topology(ABC):
@@ -149,21 +150,24 @@ class Observable:
 
     def add_zx_model(
         self,
-        bound_strength: float | None = None,
+        J_zx: float | None = None,
+        h_y: float | None = None,
         topology_type: Literal["chain", "lattice"] = "chain",
     ):
         N = self.num_qubit
-        if bound_strength is None:
-            bound_strength = 1.0
-        rng = np.random.default_rng(seed=0)
+        if J_zx is None:
+            J_zx = 1.0
+        if h_y is None:
+            h_y = 0.2
         if topology_type == "chain":
             structure = Chain(N)
         elif topology_type == "lattice":
             structure = Lattice(N)
 
         for i, j in structure.edges():
-            strength = rng.uniform(-bound_strength, bound_strength)
-            self.add_operator(strength, f"Z {i} X {j}")
+            self.add_operator(J_zx, f"Z {i} X {j}")
+        for i in structure.nodes():
+            self.add_operator(h_y, f"Y {i}")
 
     def add_free_fermion_model(
         self,
