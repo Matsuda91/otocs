@@ -1,14 +1,13 @@
 from __future__ import annotations
-from typing import Collection
-import qulacs as qs
-import plotly.graph_objects as go
+
 from dataclasses import dataclass
-from typing import Literal
-from tqdm import tqdm
-from plotly.subplots import make_subplots
-import plotly.io as pio
-from qulacsvis import circuit_drawer
+from typing import Collection, Literal
+
 import numpy as np
+import plotly.graph_objects as go
+import qulacs as qs
+from plotly.subplots import make_subplots
+from tqdm import tqdm
 
 from ..style import COLORS
 
@@ -180,7 +179,7 @@ class SweepEchoKResult:
         fig = make_subplots(
             rows=1,
             cols=2,
-            subplot_titles=(f"real", "imaginary"),
+            subplot_titles=("real", "imaginary"),
             shared_yaxes=True,
         )
         for k in echo_k_range:
