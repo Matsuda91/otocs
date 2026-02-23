@@ -1,6 +1,6 @@
 # OTOCS
 
-OTOC Spectroscopy Package
+OTOC Spectroscopy
 
 ## Installation
 
