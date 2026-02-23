@@ -36,6 +36,30 @@ class QuantumStateManager:
         return self.state
 
 
+def _calc_repeat(
+    observable: qs.Observable,
+    dt: float,
+    delta: float,
+) -> int:
+    obs_matrix_arr = observable.get_matrix().toarray()
+    norm = np.linalg.norm(obs_matrix_arr)
+    repeat = int(np.ceil((norm * abs(dt) / delta)))
+    print(f"time step       [dt]               : {dt}")
+    print(f"observable norm [|H|₂]             : {norm}")
+    print(f"Torotter repeat [N: |H|₂*dt/N < δ] : {repeat}")
+    return repeat
+
+
+def qsp_otoc_circuit(
+    observable: qs.Observable,
+    targets: tuple[int, int],
+    dt: float,
+    delta: float | None = None,
+    mode: Literal["unitary_check", "otocs"] = "otocs",
+):
+    pass
+
+
 def otoc_circuit(
     observable: qs.Observable,
     targets: tuple[int, int],
@@ -44,28 +68,15 @@ def otoc_circuit(
     delta: float | None = None,
     mode: Literal["unitary_check", "otocs"] = "otocs",
 ) -> qs.QuantumCircuit:
-    def calc_repeat(
-        observable: qs.Observable,
-        dt: float,
-        delta: float,
-    ) -> int:
-        obs_matrix_arr = observable.get_matrix().toarray()
-        norm = np.linalg.norm(obs_matrix_arr)
-        repeat = int(np.ceil((norm * abs(dt) / delta)))
-        print(f"time step       [dt]               : {dt}")
-        print(f"observable norm [|H|₂]             : {norm}")
-        print(f"Torotter repeat [N: |H|₂*dt/N < δ] : {repeat}")
-        return repeat
 
     if delta is None:
         repeat = 50
     else:
-        repeat = calc_repeat(observable, dt, delta)
+        repeat = _calc_repeat(observable, dt, delta)
     num_qubit = observable.get_qubit_count()
     circuit = qs.QuantumCircuit(num_qubit)
     i = targets[0]
     j = targets[1]
-    print(i, j)
     for _ in range(int(2 * k)):
         if mode == "otocs":
             circuit.add_Z_gate(j)
