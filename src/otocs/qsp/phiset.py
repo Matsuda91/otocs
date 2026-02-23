@@ -26,6 +26,9 @@ class QSPPhiSet:
             If None, defaults to 0.9.
         phiset (np.ndarray): Generated QSP phase angles. Available after calling generate().
 
+    reference:
+        https://github.com/ichuang/pyqsp?tab=readme-ov-file#a-guide-within-a-guide
+
     Example:
         >>> phi_set = QSPPhiSet()
         >>> phi_set.generate()
