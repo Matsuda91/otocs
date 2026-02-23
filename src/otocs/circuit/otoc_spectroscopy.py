@@ -145,16 +145,10 @@ def sweep_echo_k(
         data={
             "echo_k_range": echo_k_range,
             "time_range": time_range,
+            "targets": targets,
             "results": results,
         }
     )
-
-
-def plot(
-    time_range: np.ndarray,
-    results: list[complex],
-):
-    pass
 
 
 @dataclass
@@ -169,8 +163,51 @@ class SweepEchoKResult:
     def time_range(self) -> np.ndarray:
         return self.data["time_range"]
 
+    @property
+    def targets(self) -> tuple[int, int]:
+        return self.data["targets"]
+
     def get_values(self, echo_k: int) -> list[complex]:
         return self.data["results"][echo_k]
+
+    def plot_phase_distribution(
+        self,
+        theta_range: np.ndarray | None = None,
+        return_figure: bool = False,
+    ) -> go.Figure:
+        if theta_range is None:
+            theta_range = np.linspace(0, np.pi, 100)
+
+        values = []
+        for theta in theta_range:
+            _values = np.zeros_like(self.time_range)
+            for echo_k in self.echo_k_range:
+                _values += np.real(self.get_values(echo_k)) * np.cos(2 * echo_k * theta)
+            values.append(_values)
+
+        fig = go.Figure(
+            data=go.Surface(
+                x=self.time_range,
+                y=theta_range,
+                z=values,
+                colorscale="Viridis",
+            )
+        )
+        fig.update_layout(
+            title=f"p̃_(i={self.targets[0]},j={self.targets[1]})(θ,t) (surface view)",
+            width=700,
+            height=500,
+            scene=dict(
+                xaxis_title="time t",
+                yaxis_title="θ",
+                zaxis_title="density",
+                aspectmode="cube",
+            ),
+        )
+        fig.show()
+
+        if return_figure:
+            return fig
 
     def plot(
         self,
@@ -222,35 +259,9 @@ class SweepEchoKResult:
         )
         fig1.show()
 
-        theta_range = np.linspace(0, np.pi, 100)
-        values = []
-        for theta in theta_range:
-            _values = np.zeros_like(self.time_range)
-            for echo_k in self.echo_k_range:
-                _values += np.real(self.get_values(echo_k)) * np.cos(2 * echo_k * theta)
-            values.append(_values)
-
-        values = np.array(values)
-        fig2 = go.Figure(
-            data=go.Surface(
-                x=self.time_range,
-                y=theta_range,
-                z=values,
-                colorscale="Viridis",
-            )
+        fig2 = self.plot_phase_distribution(
+            return_figure=True,
         )
-        fig2.update_layout(
-            title="p̃_(θ,t) (surface view)",
-            width=700,
-            height=500,
-            scene=dict(
-                xaxis_title="time t",
-                yaxis_title="θ",
-                zaxis_title="density",
-                aspectmode="cube",
-            ),
-        )
-        fig2.show()
         if return_figure:
             return {
                 "fig1": fig1,
