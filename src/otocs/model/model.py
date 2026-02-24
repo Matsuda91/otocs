@@ -34,6 +34,9 @@ class Model(ABC):
     def nodes(self):
         return self.structure.nodes
 
+    def plot(self, ax=None):
+        return self.structure.plot(ax=ax)
+
     @abstractmethod
     def _add_operator(self, **kwargs) -> None:
         pass

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
@@ -11,6 +12,10 @@ class Topology(ABC):
 
     @abstractmethod
     def nodes(self):
+        pass
+
+    @abstractmethod
+    def plot(self, ax=None):
         pass
 
 
@@ -52,6 +57,21 @@ class Lattice(Topology):
     def nodes(self):
         return [i for i in range(self.num_qubit)]
 
+    def plot(self, ax=None):
+        if ax is None:
+            _, ax = plt.subplots()
+        pos = {node: node for node in self.graph.nodes()}
+        labels = {node: self.qubit_index(node) for node in self.graph.nodes()}
+        nx.draw(
+            self.graph,
+            pos=pos,
+            ax=ax,
+            with_labels=True,
+            labels=labels,
+            font_weight="bold",
+        )
+        return ax
+
 
 class Chain(Topology):
     def __init__(self, num_qubit: int):
@@ -72,3 +92,18 @@ class Chain(Topology):
     @property
     def nodes(self):
         return list(range(self.num_qubit))
+
+    def plot(self, ax=None):
+        if ax is None:
+            _, ax = plt.subplots()
+        pos = {node: (node, 0) for node in self.graph.nodes()}
+        labels = {node: self._node_to_qubit[node] for node in self.graph.nodes()}
+        nx.draw(
+            self.graph,
+            pos=pos,
+            ax=ax,
+            with_labels=True,
+            labels=labels,
+            font_weight="bold",
+        )
+        return ax
