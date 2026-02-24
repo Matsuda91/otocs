@@ -50,7 +50,10 @@ class QSPPhiSet:
     def true_func(self):
         return lambda x: self.max_scale * self.target_func(x)
 
-    def generate(self, return_phiset: bool = False):
+    def generate(
+        self,
+        return_phiset: bool = False,
+    ):
         # Specify definite-parity target function for QSP.
 
         if self.target_func is None:
