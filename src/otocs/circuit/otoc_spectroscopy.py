@@ -9,6 +9,8 @@ import qulacs as qs
 from plotly.subplots import make_subplots
 from tqdm import tqdm
 
+from otocs.qsp.phiset import QSPPhiSet, TargetFunction
+
 from ..style import COLORS
 
 
@@ -36,45 +38,108 @@ class QuantumStateManager:
         return self.state
 
 
+def _calc_repeat(
+    observable: qs.Observable,
+    dt: float,
+    delta: float,
+    write: bool = True,
+) -> int:
+    obs_matrix_arr = observable.get_matrix().toarray()
+    norm = np.linalg.norm(obs_matrix_arr)
+    repeat = int(np.ceil((norm * abs(dt) / delta)))
+    if write:
+        print("")
+        print(f"time step       [dt]               : {dt}")
+        print(f"observable norm [|H|₂]             : {norm}")
+        print(f"Trotter repeat [N: |H|₂*dt/N < δ]  : {repeat}")
+        print("")
+    return repeat
+
+
+def _calc_delta(observable: qs.Observable, dt: float, repeat: int, write: bool = True):
+    obs_matrix_arr = observable.get_matrix().toarray()
+    norm = np.linalg.norm(obs_matrix_arr)
+    delta = np.ceil(repeat(repeat / (norm * abs(dt))))
+    if write:
+        print("")
+        print(f"time step       [dt]             : {dt}")
+        print(f"observable norm [|H|₂]           : {norm}")
+        print(f"Trotter delta   [δ: N/(|H|₂*dt)] : {repeat}")
+        print("")
+
+
+def qsp_otoc_circuit(
+    filter_func: TargetFunction,
+    observable: qs.Observable,
+    targets: tuple[int, int],
+    dt: float,
+    delta: float | None = None,
+    repeat: float | None = None,
+    qsp_polydeg: int | None = None,
+    write: bool = True,
+):
+    if delta is None:
+        delta = 0.01
+
+    if repeat is None:
+        repeat = _calc_repeat(
+            observable,
+            dt,
+            delta,
+            write=write,
+        )
+    else:
+        repeat = repeat
+        print("setting repeat overwrites the setted delta as below")
+        _calc_delta(
+            dt=dt,
+            repeat=repeat,
+            write=write,
+        )
+
+    num_qubit = observable.get_qubit_count()
+    circuit = qs.QuantumCircuit(num_qubit)
+    i = targets[0]
+    j = targets[1]
+
+    qsp_phi_set = QSPPhiSet(
+        target_func=filter_func,
+        polydeg=qsp_polydeg,
+    )
+    phi_set_gen = qsp_phi_set.generate(return_phiset=True)
+    phi_set = phi_set_gen.get("phiset")
+    parity = phi_set_gen.get("parity")
+    if parity % 2 == 0:
+        raise
+    phi_set = np.reshape(phi_set, (len(phi_set) // 2, 2))
+    for pdx, phi in enumerate(phi_set):
+        circuit.add_RZ_gate(j, phi[0])
+        circuit.add_observable_rotation_gate(observable, dt, repeat=repeat)
+        circuit.add_RZ_gate(i, phi[1])
+        circuit.add_observable_rotation_gate(observable, -dt, repeat=repeat)
+    return circuit
+
+
 def otoc_circuit(
     observable: qs.Observable,
     targets: tuple[int, int],
     k: int,
     dt: float,
     delta: float | None = None,
-    mode: Literal["unitary_check", "otocs"] = "otocs",
 ) -> qs.QuantumCircuit:
-    def calc_repeat(
-        observable: qs.Observable,
-        dt: float,
-        delta: float,
-    ) -> int:
-        obs_matrix_arr = observable.get_matrix().toarray()
-        norm = np.linalg.norm(obs_matrix_arr)
-        repeat = int(np.ceil((norm * abs(dt) / delta)))
-        print(f"time step       [dt]               : {dt}")
-        print(f"observable norm [|H|₂]             : {norm}")
-        print(f"Torotter repeat [N: |H|₂*dt/N < δ] : {repeat}")
-        return repeat
 
     if delta is None:
         repeat = 50
     else:
-        repeat = calc_repeat(observable, dt, delta)
+        repeat = _calc_repeat(observable, dt, delta)
     num_qubit = observable.get_qubit_count()
     circuit = qs.QuantumCircuit(num_qubit)
     i = targets[0]
     j = targets[1]
-    print(i, j)
     for _ in range(int(2 * k)):
-        if mode == "otocs":
-            circuit.add_Z_gate(j)
-
+        circuit.add_Z_gate(j)
         circuit.add_observable_rotation_gate(observable, dt, repeat=repeat)
-
-        if mode == "otocs":
-            circuit.add_Z_gate(i)
-
+        circuit.add_Z_gate(i)
         circuit.add_observable_rotation_gate(observable, -dt, repeat=repeat)
     return circuit
 
@@ -86,7 +151,6 @@ def execute(
     echo_k: int | None = None,
     delta: float | None = None,
     initial_state_index: str | Collection[Literal["0", "1", "+"]] = "0",
-    mode: Literal["unitary_check", "otocs"] = "otocs",
 ):
     num_qubit = observable.get_qubit_count()
 
@@ -104,7 +168,6 @@ def execute(
             k=echo_k,
             dt=dt,
             delta=delta,
-            mode=mode,
         )
 
         state_manager = QuantumStateManager(num_qubit)
@@ -267,3 +330,41 @@ class SweepEchoKResult:
                 "fig1": fig1,
                 "fig2": fig2,
             }
+
+
+def execute_qsp_otoc(
+    observable: qs.Observable,
+    filter_func: TargetFunction,
+    time_range: np.ndarray,
+    targets: tuple[int, int] | None = None,
+    initial_state_index: str | Collection[Literal["0", "1", "+"]] = "0",
+    delta: float | None = None,
+    qsp_polydeg: int | None = None,
+    write: bool = False,
+):
+    num_qubit = observable.get_qubit_count()
+
+    if targets is None:
+        targets = (0, num_qubit - 1)
+
+    values = []
+    for dt in tqdm(time_range):
+        circuit: qs.QuantumCircuit = qsp_otoc_circuit(
+            filter_func=filter_func,
+            observable=observable,
+            targets=targets,
+            dt=dt,
+            delta=delta,
+            qsp_polydeg=qsp_polydeg,
+            write=write,
+        )
+
+        state_manager = QuantumStateManager(num_qubit)
+        if isinstance(initial_state_index, str):
+            initial_state_index = [initial_state_index] * num_qubit
+        state_manager.set_initial_state(initial_state_index)
+        state = state_manager.get_state()
+        circuit.update_quantum_state(state)
+
+        values.append(state.get_vector()[0])
+    return values

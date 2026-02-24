@@ -1,11 +1,12 @@
-import numpy as np
-import scipy.linalg as linalg
-from numpy.polynomial.chebyshev import chebval
+from collections import defaultdict
 from typing import Literal
-import qulacs as qs
+
+import numpy as np
 import plotly.colors as pc
 import plotly.graph_objects as go
-from collections import defaultdict
+import qulacs as qs
+import scipy.linalg as linalg
+from numpy.polynomial.chebyshev import chebval
 from tqdm import tqdm
 
 
@@ -90,8 +91,10 @@ def compute_fig2_moments(
     _is_hermitian(observable)
     H = observable.get_matrix().toarray()
     N = int(np.log2(H.shape[0]))
-    assert H.shape == (2**N, 2**N)
-    assert len(js) == N
+    if H.shape != (2**N, 2**N):
+        raise ValueError(f"Observable must be a 2^{N} x 2^{N} matrix.")
+    if len(js) != N:
+        raise ValueError(f"js must has values within qubit number {N}")
 
     if k is None:
         k = 2
