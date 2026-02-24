@@ -28,11 +28,11 @@ class Model(ABC):
 
     @property
     def edges(self):
-        return self.structure.edges()
+        return self.structure.edges
 
     @property
     def nodes(self):
-        return self.structure.nodes()
+        return self.structure.nodes
 
     @abstractmethod
     def _add_operator(self, **kwargs) -> None:

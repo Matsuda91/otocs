@@ -60,6 +60,7 @@ class Chain(Topology):
         node_list = list(self.graph.nodes())
         self._node_to_qubit = {node: i for i, node in enumerate(node_list)}
 
+    @property
     def edges(self):
         edges = []
         for u, v in self.graph.edges():
@@ -68,5 +69,6 @@ class Chain(Topology):
             edges.append([i, j])
         return edges
 
+    @property
     def nodes(self):
         return list(range(self.num_qubit))
