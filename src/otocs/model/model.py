@@ -8,9 +8,31 @@ from .model_topology import Chain, Lattice
 
 
 class Model(ABC):
-    def __init__(self, num_qubit: int):
+    def __init__(
+        self,
+        num_qubit: int,
+        topology_type: Literal["chain", "lattice"] = "chain",
+    ):
         self.num_qubit: int = num_qubit
+        self.topology_type: Literal["chain", "lattice"] = topology_type
         self.observable: qs.Observable = qs.Observable(num_qubit)
+
+    @property
+    def structure(
+        self,
+    ) -> Chain | Lattice:
+        if self.topology_type == "chain":
+            return Chain(self.num_qubit)
+        elif self.topology_type == "lattice":
+            return Lattice(self.num_qubit)
+
+    @property
+    def edges(self):
+        return self.structure.edges()
+
+    @property
+    def nodes(self):
+        return self.structure.nodes()
 
     @abstractmethod
     def _add_operator(self, **kwargs) -> None:
@@ -26,9 +48,14 @@ class Model(ABC):
 
 
 class ChaoticModel(Model):
-    def __init__(self, num_qubit: int):
+    def __init__(
+        self,
+        num_qubit: int,
+        topology_type: Literal["chain", "lattice"] = "chain",
+    ):
         self.num_qubit: int = num_qubit
         self.observable: qs.Observable = qs.Observable(num_qubit)
+        super().__init__(num_qubit, topology_type)
 
     def _add_operator(
         self,
@@ -43,7 +70,6 @@ class ChaoticModel(Model):
         J_y: float | None = None,
         J_z: float | None = None,
         h_z: float | None = None,
-        topology_type: Literal["chain", "lattice"] = "chain",
     ) -> None:
         if J_x is None:
             J_x = -0.4
@@ -53,15 +79,12 @@ class ChaoticModel(Model):
             J_z = -1.0
         if h_z is None:
             h_z = -0.75
-        if topology_type == "chain":
-            structure = Chain(self.num_qubit)
-        elif topology_type == "lattice":
-            structure = Lattice(self.num_qubit)
-        for i, j in structure.edges():
+
+        for i, j in self.edges:
             self._add_operator(J_x, f"X {i} X {j}")
             self._add_operator(J_y, f"Y {i} Y {j}")
             self._add_operator(J_z, f"Z {i} Z {j}")
-        for i in structure.nodes():
+        for i in self.nodes:
             self._add_operator(h_z, f"Z {i}")
 
     def get_observable(self) -> qs.Observable:
@@ -69,9 +92,14 @@ class ChaoticModel(Model):
 
 
 class IntegrableModel(Model):
-    def __init__(self, num_qubit: int):
+    def __init__(
+        self,
+        num_qubit: int,
+        topology_type: Literal["chain", "lattice"] = "chain",
+    ):
         self.num_qubit: int = num_qubit
         self.observable: qs.Observable = qs.Observable(num_qubit)
+        super().__init__(num_qubit, topology_type)
 
     def _add_operator(
         self,
@@ -85,17 +113,13 @@ class IntegrableModel(Model):
         J: float,
         D_zz: float,
         h_z: float,
-        topology_type: Literal["chain", "lattice"] = "chain",
     ) -> None:
-        if topology_type == "chain":
-            structure = Chain(self.num_qubit)
-        elif topology_type == "lattice":
-            structure = Lattice(self.num_qubit)
-        for i, j in structure.edges():
+
+        for i, j in self.edges:
             self._add_operator(J, f"X {i} X {j}")
             self._add_operator(J, f"Y {i} Y {j}")
             self._add_operator(J * D_zz, f"Z {i} Z {j}")
-        for i in structure.nodes():
+        for i in self.nodes:
             self._add_operator(h_z, f"Z {i}")
 
     def get_observable(self) -> qs.Observable:
@@ -103,9 +127,14 @@ class IntegrableModel(Model):
 
 
 class ZXModel(Model):
-    def __init__(self, num_qubit: int):
+    def __init__(
+        self,
+        num_qubit: int,
+        topology_type: Literal["chain", "lattice"] = "chain",
+    ):
         self.num_qubit: int = num_qubit
         self.observable: qs.Observable = qs.Observable(num_qubit)
+        super().__init__(num_qubit, topology_type)
 
     def _add_operator(
         self,
@@ -124,14 +153,10 @@ class ZXModel(Model):
             J_zx = 1.0
         if h_y is None:
             h_y = 0.2
-        if topology_type == "chain":
-            structure = Chain(self.num_qubit)
-        elif topology_type == "lattice":
-            structure = Lattice(self.num_qubit)
 
-        for i, j in structure.edges():
+        for i, j in self.edges:
             self._add_operator(J_zx, f"Z {i} X {j}")
-        for i in structure.nodes():
+        for i in self.nodes:
             self._add_operator(h_y, f"Y {i}")
 
     def get_observable(self) -> qs.Observable:
@@ -139,9 +164,14 @@ class ZXModel(Model):
 
 
 class FreeFermionModel(Model):
-    def __init__(self, num_qubit: int):
+    def __init__(
+        self,
+        num_qubit: int,
+        topology_type: Literal["chain", "lattice"] = "chain",
+    ):
         self.num_qubit: int = num_qubit
         self.observable: qs.Observable = qs.Observable(num_qubit)
+        super().__init__(num_qubit, topology_type)
 
     def _add_operator(
         self,
@@ -155,7 +185,6 @@ class FreeFermionModel(Model):
         J: float | None = None,
         D_zz: float | None = None,
         h_z: float | None = None,
-        topology_type: Literal["chain", "lattice"] = "chain",
     ) -> None:
         if J is None:
             J = 1.0
@@ -163,15 +192,12 @@ class FreeFermionModel(Model):
             D_zz = 0.0
         if h_z is None:
             h_z = 0.0
-        if topology_type == "chain":
-            structure = Chain(self.num_qubit)
-        elif topology_type == "lattice":
-            structure = Lattice(self.num_qubit)
-        for i, j in structure.edges():
+
+        for i, j in self.edges:
             self._add_operator(J, f"X {i} X {j}")
             self._add_operator(J, f"Y {i} Y {j}")
             self._add_operator(J * D_zz, f"Z {i} Z {j}")
-        for i in structure.nodes():
+        for i in self.nodes:
             self._add_operator(h_z, f"Z {i}")
 
     def get_observable(self) -> qs.Observable:
@@ -179,9 +205,14 @@ class FreeFermionModel(Model):
 
 
 class BetheAnsatzModel(Model):
-    def __init__(self, num_qubit: int):
+    def __init__(
+        self,
+        num_qubit: int,
+        topology_type: Literal["chain", "lattice"] = "chain",
+    ):
         self.num_qubit: int = num_qubit
         self.observable: qs.Observable = qs.Observable(num_qubit)
+        super().__init__(num_qubit, topology_type)
 
     def _add_operator(
         self,
@@ -195,7 +226,6 @@ class BetheAnsatzModel(Model):
         J: float | None = None,
         D_zz: float | None = None,
         h_z: float | None = None,
-        topology_type: Literal["chain", "lattice"] = "chain",
     ) -> None:
         if J is None:
             J = 1.0
@@ -203,15 +233,12 @@ class BetheAnsatzModel(Model):
             D_zz = 1.0
         if h_z is None:
             h_z = 0.2
-        if topology_type == "chain":
-            structure = Chain(self.num_qubit)
-        elif topology_type == "lattice":
-            structure = Lattice(self.num_qubit)
-        for i, j in structure.edges():
+
+        for i, j in self.edges:
             self._add_operator(J, f"X {i} X {j}")
             self._add_operator(J, f"Y {i} Y {j}")
             self._add_operator(J * D_zz, f"Z {i} Z {j}")
-        for i in structure.nodes():
+        for i in self.nodes:
             self._add_operator(h_z, f"Z {i}")
 
     def get_observable(self) -> qs.Observable:
@@ -219,9 +246,14 @@ class BetheAnsatzModel(Model):
 
 
 class MBLModel(Model):
-    def __init__(self, num_qubit: int):
+    def __init__(
+        self,
+        num_qubit: int,
+        topology_type: Literal["chain", "lattice"] = "chain",
+    ):
         self.num_qubit: int = num_qubit
         self.observable: qs.Observable = qs.Observable(num_qubit)
+        super().__init__(num_qubit, topology_type)
 
     def _add_operator(
         self,
@@ -247,18 +279,17 @@ class MBLModel(Model):
 
         field_strengths = np.zeros(self.num_qubit)
 
-        structure = Chain(self.num_qubit)
-        for i in structure.nodes():
+        for i in self.nodes:
             while True:
                 x = rng.uniform(-bound_field_strength, bound_field_strength)
                 if abs(x) >= coupling_strength:
                     field_strengths[i] = x
                     break
-        for i, j in structure.edges():
+        for i, j in self.edges:
             self._add_operator(coupling_strength, f"X {i} X {j}")
             self._add_operator(coupling_strength, f"Y {i} Y {j}")
             self._add_operator(coupling_strength, f"Z {i} Z {j}")
-        for i in structure.nodes():
+        for i in self.nodes:
             self._add_operator(field_strengths[i], f"Z {i}")
 
     def get_observable(self) -> qs.Observable:
@@ -266,9 +297,14 @@ class MBLModel(Model):
 
 
 class TransverseIsingModel(Model):
-    def __init__(self, num_qubit: int):
+    def __init__(
+        self,
+        num_qubit: int,
+        topology_type: Literal["chain", "lattice"] = "chain",
+    ):
         self.num_qubit: int = num_qubit
         self.observable: qs.Observable = qs.Observable(num_qubit)
+        super().__init__(num_qubit, topology_type)
 
     def _add_operator(
         self,
@@ -281,20 +317,15 @@ class TransverseIsingModel(Model):
         self,
         coupling_strength: float | None = None,
         field_strength: float | None = None,
-        topology_type: Literal["chain", "lattice"] = "chain",
     ) -> None:
         if coupling_strength is None:
             coupling_strength = 1.0
         if field_strength is None:
             field_strength = 0.5
-        if topology_type == "chain":
-            structure = Chain(self.num_qubit)
-        elif topology_type == "lattice":
-            structure = Lattice(self.num_qubit)
 
-        for i, j in structure.edges():
+        for i, j in self.edges:
             self._add_operator(coupling_strength, f"X {i} X {j}")
-        for i in structure.nodes():
+        for i in self.nodes:
             self._add_operator(field_strength, f"Z {i}")
 
     def get_observable(self) -> qs.Observable:
