@@ -50,7 +50,7 @@ class Lattice(Topology):
 
     @property
     def nodes(self):
-        return list(range(self.num_qubit))
+        return [i for i in range(self.num_qubit)]
 
 
 class Chain(Topology):
