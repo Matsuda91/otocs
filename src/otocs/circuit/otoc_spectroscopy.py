@@ -75,6 +75,7 @@ def qsp_otoc_circuit(
     dt: float,
     delta: float | None = None,
     repeat: float | None = None,
+    qsp_polydeg: int | None = None,
     write: bool = True,
 ):
     if delta is None:
@@ -103,6 +104,7 @@ def qsp_otoc_circuit(
 
     qsp_phi_set = QSPPhiSet(
         target_func=filter_func,
+        polydeg=qsp_polydeg,
     )
     phi_set_gen = qsp_phi_set.generate(return_phiset=True)
     phi_set = phi_set_gen.get("phiset")
@@ -335,9 +337,10 @@ def execute_qsp_otoc(
     filter_func: TargetFunction,
     time_range: np.ndarray,
     targets: tuple[int, int] | None = None,
-    delta: float | None = None,
-    write: bool = False,
     initial_state_index: str | Collection[Literal["0", "1", "+"]] = "0",
+    delta: float | None = None,
+    qsp_polydeg: int | None = None,
+    write: bool = False,
 ):
     num_qubit = observable.get_qubit_count()
 
@@ -352,6 +355,7 @@ def execute_qsp_otoc(
             targets=targets,
             dt=dt,
             delta=delta,
+            qsp_polydeg=qsp_polydeg,
             write=write,
         )
 
