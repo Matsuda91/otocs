@@ -109,14 +109,17 @@ def qsp_otoc_circuit(
     phi_set_gen = qsp_phi_set.generate(return_phiset=True)
     phi_set = phi_set_gen.get("phiset")
     parity = phi_set_gen.get("parity")
-    if parity % 2 == 0:
-        raise
-    phi_set = np.reshape(phi_set, (len(phi_set) // 2, 2))
-    for pdx, phi in enumerate(phi_set):
-        circuit.add_RZ_gate(j, phi[0])
+    if parity % 2 == 1:
+        raise ValueError(
+            "parity is odd, which is not suitable for OTOC spectroscopy. Please specify an even-parity target function for QSP."
+        )
+    r = len(phi_set) // 2
+    for rdx in range(r):
+        circuit.add_RZ_gate(j, -2 * phi_set[2 * rdx])
         circuit.add_observable_rotation_gate(observable, dt, repeat=repeat)
-        circuit.add_RZ_gate(i, phi[1])
+        circuit.add_RZ_gate(i, -2 * phi_set[2 * rdx + 1])
         circuit.add_observable_rotation_gate(observable, -dt, repeat=repeat)
+    circuit.add_RZ_gate(i, -2 * phi_set[2 * r])
     return circuit
 
 

@@ -53,8 +53,7 @@ class QSPPhiSet:
     def generate(
         self,
         return_phiset: bool = False,
-        mode: Literal["sym_qsp", "laurent"] = "laurent",
-        chevyshev_basis: bool = False,
+        method: Literal["sym_qsp", "laurent"] = "sym_qsp",
     ):
         # Specify definite-parity target function for QSP.
 
@@ -66,6 +65,11 @@ class QSPPhiSet:
         if self.max_scale is None:
             self.max_scale = 0.9  # Maximum norm (<1) for rescaling.
 
+        if method == "sym_qsp":
+            chebyshev_basis: bool = True
+        elif method == "laurent":
+            chebyshev_basis: bool = False
+
         """
         With PolyTaylorSeries class, compute Chebyshev interpolant to degree
         'polydeg' (using twice as many Chebyshev nodes to prevent aliasing).
@@ -74,34 +78,36 @@ class QSPPhiSet:
             func=self.target_func,
             degree=self.polydeg,
             max_scale=self.max_scale,
-            chebyshev_basis=True,
+            chebyshev_basis=chebyshev_basis,
             cheb_samples=2 * self.polydeg,
         )
 
-        # Compute full phases (and reduced phases, parity) using symmetric QSP.
-        qsp_result = angle_sequence.QuantumSignalProcessingPhases(
-            poly,
-            signal_operator="Wz",
-            mode=mode,
-            chevyshev_basis=chevyshev_basis if mode == "laurent" else True,
-        )
-        if mode == "sym_qsp":
-            phiset = qsp_result[0]
-            self.phiset = np.array(phiset)
-            red_phiset = qsp_result[1]
-            parity = qsp_result[2]
-        else:
-            phiset = np.array(qsp_result)
-            phiset = np.array(phiset)
+        if method == "sym_qsp":
+            # Compute full phases (and reduced phases, parity) using symmetric QSP.
+            (phiset, red_phiset, parity) = angle_sequence.QuantumSignalProcessingPhases(
+                poly,
+                signal_operator="Wz",
+                method=method,
+                chebyshev_basis=chebyshev_basis,
+            )
+            self.phiset = phiset
+        elif method == "laurent":
+            qsp_result = angle_sequence.QuantumSignalProcessingPhases(
+                poly,
+                signal_operator="Wz",
+                method=method,
+                chebyshev_basis=chebyshev_basis,
+            )
+            self.phiset = np.array(qsp_result)
             red_phiset = None
             parity = None
 
         if return_phiset:
             return {
-                "phiset": phiset,
+                "phiset": self.phiset,
                 "red_phiset": red_phiset,
                 "parity": parity,
-                "mode": mode,
+                "mode": method,
             }
 
     def plot(self):
