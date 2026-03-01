@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import Callable, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -53,6 +53,8 @@ class QSPPhiSet:
     def generate(
         self,
         return_phiset: bool = False,
+        mode: Literal["sym_qsp", "laurent"] = "laurent",
+        chevyshev_basis: bool = False,
     ):
         # Specify definite-parity target function for QSP.
 
@@ -77,14 +79,30 @@ class QSPPhiSet:
         )
 
         # Compute full phases (and reduced phases, parity) using symmetric QSP.
-        (phiset, red_phiset, parity) = angle_sequence.QuantumSignalProcessingPhases(
-            poly, signal_operator="Wz", method="sym_qsp", chebyshev_basis=True
+        qsp_result = angle_sequence.QuantumSignalProcessingPhases(
+            poly,
+            signal_operator="Wz",
+            mode=mode,
+            chevyshev_basis=chevyshev_basis if mode == "laurent" else True,
         )
-
-        self.phiset = phiset
+        if mode == "sym_qsp":
+            phiset = qsp_result[0]
+            self.phiset = np.array(phiset)
+            red_phiset = qsp_result[1]
+            parity = qsp_result[2]
+        else:
+            phiset = np.array(qsp_result)
+            phiset = np.array(phiset)
+            red_phiset = None
+            parity = None
 
         if return_phiset:
-            return {"phiset": phiset, "red_phiset": red_phiset, "parity": parity}
+            return {
+                "phiset": phiset,
+                "red_phiset": red_phiset,
+                "parity": parity,
+                "mode": mode,
+            }
 
     def plot(self):
         """
