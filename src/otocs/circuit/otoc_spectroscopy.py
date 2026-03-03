@@ -6,9 +6,9 @@ from typing import Collection, Literal
 import numpy as np
 import plotly.graph_objects as go
 import qulacs as qs
-from plotly.subplots import make_subplots
 from tqdm import tqdm
 
+import otocs.utility.vizualization as viz
 from otocs.qsp.phiset import QSPPhiSet, TargetFunction
 
 from ..style import COLORS
@@ -265,56 +265,55 @@ class SweepEchoKResult:
         time_range = self.time_range
         echo_k_range = self.echo_k_range
 
-        fig1 = make_subplots(
-            rows=1,
-            cols=2,
-            subplot_titles=("real", "imaginary"),
-            shared_yaxes=True,
-        )
+        fig1 = go.Figure()
         for k in echo_k_range:
             values = self.get_values(k)
 
-            fig1.add_trace(
-                go.Scatter(
-                    x=time_range,
-                    y=np.real(values),
-                    mode="lines+markers",
-                    name=f"k={k}",
-                    showlegend=False,
-                    marker=dict(color=COLORS[(int(k) - 1) % len(COLORS)]),
-                ),
-                row=1,
-                col=1,
+            _fig = viz.plot_2d(
+                x=time_range,
+                y=np.real(values),
+                name=f"k={k}",
+                color=COLORS[(int(k) - 1) % len(COLORS)],
+                plot=False,
+                return_figure=True,
             )
-            fig1.add_trace(
-                go.Scatter(
-                    x=time_range,
-                    y=np.imag(values),
-                    mode="lines+markers",
-                    name=f"k={k}",
-                    showlegend=True,
-                    marker=dict(color=COLORS[(int(k) - 1) % len(COLORS)]),
-                ),
-                row=1,
-                col=2,
-            )
-
-        fig1.update_xaxes(title_text="Time", row=1, col=1)
-        fig1.update_xaxes(title_text="Time", row=1, col=2)
-        fig1.update_yaxes(
-            title=dict(text="OTOC^(k)"),
-            row=1,
-            col=1,
+            for trace in _fig.data:
+                fig1.add_trace(trace)
+        fig1.update_layout(
+            title=f"OTOC^(k) (i={self.targets[0]},j={self.targets[1]}) (real part)",
+            xaxis_title="Time",
+            yaxis_title="OTOC^(k)",
         )
         fig1.show()
 
-        fig2 = self.plot_phase_distribution(
+        fig2 = go.Figure()
+        for k in echo_k_range:
+            values = self.get_values(k)
+            _fig = viz.plot_2d(
+                x=time_range,
+                y=np.imag(values),
+                name=f"k={k}",
+                color=COLORS[(int(k) - 1) % len(COLORS)],
+                plot=False,
+                return_figure=True,
+            )
+            for trace in _fig.data:
+                fig2.add_trace(trace)
+        fig2.update_layout(
+            title=f"OTOC^(k) (i={self.targets[0]},j={self.targets[1]}) (imaginary part)",
+            xaxis_title="Time",
+            yaxis_title="OTOC^(k)",
+        )
+        fig2.show()
+
+        fig3 = self.plot_phase_distribution(
             return_figure=True,
         )
         if return_figure:
             return {
                 "fig1": fig1,
                 "fig2": fig2,
+                "fig3": fig3,
             }
 
 
