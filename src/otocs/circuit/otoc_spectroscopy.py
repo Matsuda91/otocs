@@ -64,7 +64,7 @@ def _calc_delta(observable: qs.Observable, dt: float, repeat: int, write: bool =
         print("")
         print(f"time step       [dt]             : {dt}")
         print(f"observable norm [|H|₂]           : {norm}")
-        print(f"Trotter delta   [δ: N/(|H|₂*dt)] : {repeat}")
+        print(f"Trotter delta   [δ: N/(|H|₂*dt)] : {delta}")
         print("")
 
 
