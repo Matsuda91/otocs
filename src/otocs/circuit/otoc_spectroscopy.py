@@ -76,7 +76,7 @@ def qsp_otoc_circuit(
     delta: float | None = None,
     repeat: float | None = None,
     qsp_polydeg: int | None = None,
-    signal_operator: Literal["Wx", "Wz"] = "Wx",
+    signal_operator: Literal["Wx", "Wz"] = "Wz",
     write: bool = True,
 ):
     if delta is None:
@@ -112,10 +112,9 @@ def qsp_otoc_circuit(
         signal_operator=signal_operator,
     )
     phi_set = phi_set_gen.get("phiset")
-    parity = phi_set_gen.get("parity")
-    if parity % 2 == 1:
+    if len(phi_set) % 2 == 0:
         raise ValueError(
-            "parity is odd, which is not suitable for OTOC spectroscopy. Please specify an even-parity target function for QSP."
+            f"Invalid phi_set length: {len(phi_set)}. The length of phi_set must be odd."
         )
     r = len(phi_set) // 2
     for rdx in range(r):
@@ -347,7 +346,7 @@ def execute_qsp_otoc(
     initial_state_index: str | Collection[Literal["0", "1", "+"]] = "0",
     delta: float | None = None,
     qsp_polydeg: int | None = None,
-    signal_operator: Literal["Wx", "Wz"] = "Wx",
+    signal_operator: Literal["Wx", "Wz"] = "Wz",
     write: bool = False,
 ):
     num_qubit = observable.get_qubit_count()

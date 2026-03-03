@@ -9,6 +9,9 @@ from pyqsp.poly import PolyTaylorSeries
 
 TargetFunction = Callable[[npt.NDArray], npt.NDArray]
 
+DEFAULT_POLYDEG = 10
+DEFAULT_MAX_SCALE = 0.9
+
 
 class QSPPhiSet:
     """
@@ -42,8 +45,8 @@ class QSPPhiSet:
         max_scale: float | None = None,
     ):
         self.target_func = target_func
-        self.polydeg = polydeg
-        self.max_scale = max_scale
+        self.polydeg = DEFAULT_POLYDEG if polydeg is None else polydeg
+        self.max_scale = DEFAULT_MAX_SCALE if max_scale is None else max_scale
         self.phiset = None
 
     @property
@@ -53,18 +56,13 @@ class QSPPhiSet:
     def generate(
         self,
         return_phiset: bool = False,
-        signal_operator: Literal["Wx", "Wz"] = "Wx",
+        signal_operator: Literal["Wx", "Wz"] = "Wz",
         method: Literal["sym_qsp", "laurent"] = "sym_qsp",
     ):
         # Specify definite-parity target function for QSP.
 
         if self.target_func is None:
             self.target_func = lambda x: np.cos(3 * x)
-
-        if self.polydeg is None:
-            self.polydeg = 10  # Desired QSP protocol length.
-        if self.max_scale is None:
-            self.max_scale = 0.9  # Maximum norm (<1) for rescaling.
 
         if method == "sym_qsp":
             chebyshev_basis: bool = True
