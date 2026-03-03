@@ -347,6 +347,7 @@ def execute_qsp_otoc(
     initial_state_index: str | Collection[Literal["0", "1", "+"]] = "0",
     delta: float | None = None,
     qsp_polydeg: int | None = None,
+    signal_operator: Literal["Wx", "Wz"] = "Wx",
     write: bool = False,
 ):
     num_qubit = observable.get_qubit_count()
@@ -363,6 +364,7 @@ def execute_qsp_otoc(
             dt=dt,
             delta=delta,
             qsp_polydeg=qsp_polydeg,
+            signal_operator=signal_operator,
             write=write,
         )
 
