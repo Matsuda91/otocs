@@ -53,6 +53,7 @@ class QSPPhiSet:
     def generate(
         self,
         return_phiset: bool = False,
+        signal_operator: Literal["Wx", "Wz"] = "Wx",
         method: Literal["sym_qsp", "laurent"] = "sym_qsp",
     ):
         # Specify definite-parity target function for QSP.
@@ -86,7 +87,7 @@ class QSPPhiSet:
             # Compute full phases (and reduced phases, parity) using symmetric QSP.
             (phiset, red_phiset, parity) = angle_sequence.QuantumSignalProcessingPhases(
                 poly,
-                signal_operator="Wz",
+                signal_operator=signal_operator,
                 method=method,
                 chebyshev_basis=chebyshev_basis,
             )
@@ -94,7 +95,7 @@ class QSPPhiSet:
         elif method == "laurent":
             qsp_result = angle_sequence.QuantumSignalProcessingPhases(
                 poly,
-                signal_operator="Wz",
+                signal_operator=signal_operator,
                 method=method,
                 chebyshev_basis=chebyshev_basis,
             )

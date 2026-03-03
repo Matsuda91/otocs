@@ -76,6 +76,7 @@ def qsp_otoc_circuit(
     delta: float | None = None,
     repeat: float | None = None,
     qsp_polydeg: int | None = None,
+    signal_operator: Literal["Wx", "Wz"] = "Wx",
     write: bool = True,
 ):
     if delta is None:
@@ -106,7 +107,10 @@ def qsp_otoc_circuit(
         target_func=filter_func,
         polydeg=qsp_polydeg,
     )
-    phi_set_gen = qsp_phi_set.generate(return_phiset=True)
+    phi_set_gen = qsp_phi_set.generate(
+        return_phiset=True,
+        signal_operator=signal_operator,
+    )
     phi_set = phi_set_gen.get("phiset")
     parity = phi_set_gen.get("parity")
     if parity % 2 == 1:
