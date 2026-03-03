@@ -6,9 +6,9 @@ from typing import Collection, Literal
 import numpy as np
 import plotly.graph_objects as go
 import qulacs as qs
-from plotly.subplots import make_subplots
 from tqdm import tqdm
 
+import otocs.utility.vizualization as viz
 from otocs.qsp.phiset import QSPPhiSet, TargetFunction
 
 from ..style import COLORS
@@ -56,44 +56,24 @@ def _calc_repeat(
     return repeat
 
 
-def _calc_delta(observable: qs.Observable, dt: float, repeat: int, write: bool = True):
-    obs_matrix_arr = observable.get_matrix().toarray()
-    norm = np.linalg.norm(obs_matrix_arr)
-    delta = np.ceil(repeat(repeat / (norm * abs(dt))))
-    if write:
-        print("")
-        print(f"time step       [dt]             : {dt}")
-        print(f"observable norm [|H|₂]           : {norm}")
-        print(f"Trotter delta   [δ: N/(|H|₂*dt)] : {repeat}")
-        print("")
-
-
 def qsp_otoc_circuit(
     filter_func: TargetFunction,
     observable: qs.Observable,
     targets: tuple[int, int],
     dt: float,
     delta: float | None = None,
-    repeat: float | None = None,
     qsp_polydeg: int | None = None,
+    max_scale: float | None = None,
+    signal_operator: Literal["Wx", "Wz"] = "Wz",
     write: bool = True,
 ):
     if delta is None:
-        delta = 0.01
-
-    if repeat is None:
+        repeat = 50
+    else:
         repeat = _calc_repeat(
             observable,
             dt,
             delta,
-            write=write,
-        )
-    else:
-        repeat = repeat
-        print("setting repeat overwrites the setted delta as below")
-        _calc_delta(
-            dt=dt,
-            repeat=repeat,
             write=write,
         )
 
@@ -105,13 +85,16 @@ def qsp_otoc_circuit(
     qsp_phi_set = QSPPhiSet(
         target_func=filter_func,
         polydeg=qsp_polydeg,
+        max_scale=max_scale,
     )
-    phi_set_gen = qsp_phi_set.generate(return_phiset=True)
+    phi_set_gen = qsp_phi_set.generate(
+        return_phiset=True,
+        signal_operator=signal_operator,
+    )
     phi_set = phi_set_gen.get("phiset")
-    parity = phi_set_gen.get("parity")
-    if parity % 2 == 1:
+    if len(phi_set) % 2 == 0:
         raise ValueError(
-            "parity is odd, which is not suitable for OTOC spectroscopy. Please specify an even-parity target function for QSP."
+            f"Invalid phi_set length: {len(phi_set)}. The length of phi_set must be odd."
         )
     r = len(phi_set) // 2
     for rdx in range(r):
@@ -282,56 +265,55 @@ class SweepEchoKResult:
         time_range = self.time_range
         echo_k_range = self.echo_k_range
 
-        fig1 = make_subplots(
-            rows=1,
-            cols=2,
-            subplot_titles=("real", "imaginary"),
-            shared_yaxes=True,
-        )
+        fig1 = go.Figure()
         for k in echo_k_range:
             values = self.get_values(k)
 
-            fig1.add_trace(
-                go.Scatter(
-                    x=time_range,
-                    y=np.real(values),
-                    mode="lines+markers",
-                    name=f"k={k}",
-                    showlegend=False,
-                    marker=dict(color=COLORS[(int(k) - 1) % len(COLORS)]),
-                ),
-                row=1,
-                col=1,
+            _fig = viz.plot_2d(
+                x=time_range,
+                y=np.real(values),
+                name=f"k={k}",
+                color=COLORS[(int(k) - 1) % len(COLORS)],
+                plot=False,
+                return_figure=True,
             )
-            fig1.add_trace(
-                go.Scatter(
-                    x=time_range,
-                    y=np.imag(values),
-                    mode="lines+markers",
-                    name=f"k={k}",
-                    showlegend=True,
-                    marker=dict(color=COLORS[(int(k) - 1) % len(COLORS)]),
-                ),
-                row=1,
-                col=2,
-            )
-
-        fig1.update_xaxes(title_text="Time", row=1, col=1)
-        fig1.update_xaxes(title_text="Time", row=1, col=2)
-        fig1.update_yaxes(
-            title=dict(text="OTOC^(k)"),
-            row=1,
-            col=1,
+            for trace in _fig.data:
+                fig1.add_trace(trace)
+        fig1.update_layout(
+            title=f"OTOC^(k) (i={self.targets[0]},j={self.targets[1]}) (real part)",
+            xaxis_title="Time",
+            yaxis_title="OTOC^(k)",
         )
         fig1.show()
 
-        fig2 = self.plot_phase_distribution(
+        fig2 = go.Figure()
+        for k in echo_k_range:
+            values = self.get_values(k)
+            _fig = viz.plot_2d(
+                x=time_range,
+                y=np.imag(values),
+                name=f"k={k}",
+                color=COLORS[(int(k) - 1) % len(COLORS)],
+                plot=False,
+                return_figure=True,
+            )
+            for trace in _fig.data:
+                fig2.add_trace(trace)
+        fig2.update_layout(
+            title=f"OTOC^(k) (i={self.targets[0]},j={self.targets[1]}) (imaginary part)",
+            xaxis_title="Time",
+            yaxis_title="OTOC^(k)",
+        )
+        fig2.show()
+
+        fig3 = self.plot_phase_distribution(
             return_figure=True,
         )
         if return_figure:
             return {
                 "fig1": fig1,
                 "fig2": fig2,
+                "fig3": fig3,
             }
 
 
@@ -343,12 +325,16 @@ def execute_qsp_otoc(
     initial_state_index: str | Collection[Literal["0", "1", "+"]] = "0",
     delta: float | None = None,
     qsp_polydeg: int | None = None,
+    max_scale: float | None = None,
+    signal_operator: Literal["Wx", "Wz"] = "Wz",
     write: bool = False,
 ):
     num_qubit = observable.get_qubit_count()
 
     if targets is None:
         targets = (0, num_qubit - 1)
+    if max_scale is None:
+        max_scale = 1.0
 
     values = []
     for dt in tqdm(time_range):
@@ -359,6 +345,8 @@ def execute_qsp_otoc(
             dt=dt,
             delta=delta,
             qsp_polydeg=qsp_polydeg,
+            max_scale=max_scale,
+            signal_operator=signal_operator,
             write=write,
         )
 
