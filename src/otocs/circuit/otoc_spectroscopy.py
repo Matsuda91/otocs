@@ -76,6 +76,7 @@ def qsp_otoc_circuit(
     delta: float | None = None,
     repeat: float | None = None,
     qsp_polydeg: int | None = None,
+    max_scale: float | None = None,
     signal_operator: Literal["Wx", "Wz"] = "Wz",
     write: bool = True,
 ):
@@ -106,6 +107,7 @@ def qsp_otoc_circuit(
     qsp_phi_set = QSPPhiSet(
         target_func=filter_func,
         polydeg=qsp_polydeg,
+        max_scale=max_scale,
     )
     phi_set_gen = qsp_phi_set.generate(
         return_phiset=True,
@@ -346,6 +348,7 @@ def execute_qsp_otoc(
     initial_state_index: str | Collection[Literal["0", "1", "+"]] = "0",
     delta: float | None = None,
     qsp_polydeg: int | None = None,
+    max_scale: float | None = None,
     signal_operator: Literal["Wx", "Wz"] = "Wz",
     write: bool = False,
 ):
@@ -353,6 +356,8 @@ def execute_qsp_otoc(
 
     if targets is None:
         targets = (0, num_qubit - 1)
+    if max_scale is None:
+        max_scale = 1.0
 
     values = []
     for dt in tqdm(time_range):
@@ -363,6 +368,7 @@ def execute_qsp_otoc(
             dt=dt,
             delta=delta,
             qsp_polydeg=qsp_polydeg,
+            max_scale=max_scale,
             signal_operator=signal_operator,
             write=write,
         )
