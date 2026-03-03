@@ -9,10 +9,13 @@ def plot_2d(
     y: np.ndarray,
     title: str = "2d plot",
     name: str = "data",
+    showlegend: bool = True,
     width: int = 600,
     height: int = 300,
     xaxis_title: str = "x",
     yaxis_title: str = "y",
+    xaxes_automargin: bool = True,
+    yaxes_automargin: bool = True,
     color: str = COLORS[0],
     plot: bool = True,
     return_figure: bool = False,
@@ -27,7 +30,14 @@ def plot_2d(
             mode="lines+markers",
             name=name,
             marker=dict(color=color),
+            showlegend=showlegend,
         )
+    )
+    fig.update_xaxes(
+        automargin=xaxes_automargin,
+    )
+    fig.update_yaxes(
+        automargin=yaxes_automargin,
     )
     fig.update_layout(
         width=width,
