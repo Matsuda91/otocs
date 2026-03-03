@@ -56,46 +56,24 @@ def _calc_repeat(
     return repeat
 
 
-def _calc_delta(observable: qs.Observable, dt: float, repeat: int, write: bool = True):
-    obs_matrix_arr = observable.get_matrix().toarray()
-    norm = np.linalg.norm(obs_matrix_arr)
-    delta = np.ceil(repeat(repeat / (norm * abs(dt))))
-    if write:
-        print("")
-        print(f"time step       [dt]             : {dt}")
-        print(f"observable norm [|H|₂]           : {norm}")
-        print(f"Trotter delta   [δ: N/(|H|₂*dt)] : {delta}")
-        print("")
-
-
 def qsp_otoc_circuit(
     filter_func: TargetFunction,
     observable: qs.Observable,
     targets: tuple[int, int],
     dt: float,
     delta: float | None = None,
-    repeat: float | None = None,
     qsp_polydeg: int | None = None,
     max_scale: float | None = None,
     signal_operator: Literal["Wx", "Wz"] = "Wz",
     write: bool = True,
 ):
     if delta is None:
-        delta = 0.01
-
-    if repeat is None:
+        repeat = 50
+    else:
         repeat = _calc_repeat(
             observable,
             dt,
             delta,
-            write=write,
-        )
-    else:
-        repeat = repeat
-        print("setting repeat overwrites the setted delta as below")
-        _calc_delta(
-            dt=dt,
-            repeat=repeat,
             write=write,
         )
 
