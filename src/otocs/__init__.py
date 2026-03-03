@@ -15,6 +15,7 @@ from .model import (
     ZXModel,
 )
 from .style import apply_template
+from .utility import plot_2d
 
 __all__ = [
     "sweep_echo_k",
@@ -28,6 +29,7 @@ __all__ = [
     "BetheAnsatzModel",
     "MBLModel",
     "TransverseIsingModel",
+    "plot_2d",
 ]
 
 apply_template("default")
