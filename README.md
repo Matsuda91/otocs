@@ -10,12 +10,7 @@ pip install -e .
 
 ## Usage
 
-```python
-from otocs.circuit import sweep_echo_k, Observable
-from otocs.model import Observable
-
-# Your code here
-```
+[docs](./docs/)
 
 ## Development
 
