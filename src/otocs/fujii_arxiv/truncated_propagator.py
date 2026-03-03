@@ -2,11 +2,11 @@ from collections import defaultdict
 from typing import Literal
 
 import numpy as np
+import numpy.polynomial as NumPoly
 import plotly.colors as pc
 import plotly.graph_objects as go
 import qulacs as qs
 import scipy.linalg as linalg
-from numpy.polynomial.chebyshev import chebval
 from tqdm import tqdm
 
 
@@ -65,7 +65,7 @@ def _chebyshev_Tn(
 ) -> np.ndarray:
     c = np.zeros(n + 1)
     c[n] = 1.0
-    return chebval(lam, c)
+    return NumPoly.chebyshev.chebval(lam, c)
 
 
 def _moment_M_4k(
