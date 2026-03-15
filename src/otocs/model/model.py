@@ -333,3 +333,38 @@ class TransverseIsingModel(Model):
 
     def get_observable(self) -> qs.Observable:
         return self.observable
+
+
+class CrossResonanceModel(Model):
+    def __init__(
+        self,
+        num_qubit: int,
+        topology_type: Literal["chain", "lattice"] = "chain",
+    ):
+        self.num_qubit: int = num_qubit
+        self.observable: qs.Observable = qs.Observable(num_qubit)
+        super().__init__(num_qubit, topology_type)
+
+    def _add_operator(
+        self,
+        coefficient: float,
+        pauli_string: str,
+    ) -> None:
+        self.observable.add_operator(coefficient, pauli_string)
+
+    def add_params(
+        self,
+        control_qubits: list[int],
+        coupling_strength: float | None = None,
+    ) -> None:
+        if coupling_strength is None:
+            coupling_strength = 1.0
+
+        for i, j in self.edges:
+            if i in control_qubits:
+                self._add_operator(
+                    coupling_strength, f"Z {i} X {j}"
+                )  # TODO: 3-body interaction
+
+    def get_observable(self) -> qs.Observable:
+        return self.observable
