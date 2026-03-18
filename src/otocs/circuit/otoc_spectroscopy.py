@@ -137,6 +137,7 @@ def execute(
     echo_k: int | None = None,
     delta: float | None = None,
     initial_state_index: str | Collection[Literal["0", "1", "+"]] = "0",
+    measure_basis: str | Collection[Literal["X", "Y", "Z"]] = "Z",
 ):
     num_qubit = observable.get_qubit_count()
 
@@ -145,6 +146,10 @@ def execute(
 
     if echo_k is None:
         echo_k = 1
+    if isinstance(initial_state_index, str):
+        initial_state_index = [initial_state_index] * num_qubit
+    if isinstance(measure_basis, str):
+        measure_basis = [measure_basis] * num_qubit
 
     values = []
     for dt in time_range:
@@ -157,12 +162,21 @@ def execute(
         )
 
         state_manager = QuantumStateManager(num_qubit)
-        if isinstance(initial_state_index, str):
-            initial_state_index = [initial_state_index] * num_qubit
+
         state_manager.set_initial_state(initial_state_index)
         state = state_manager.get_state()
         circuit.update_quantum_state(state)
 
+        for i, basis in enumerate(measure_basis):
+            if basis == "X":
+                circuit.add_H_gate(i)
+            elif basis == "Y":
+                circuit.add_Sdag_gate(i)
+                circuit.add_H_gate(i)
+            elif basis == "Z":
+                pass
+            else:
+                raise ValueError(f"Invalid measure basis: {basis}")
         values.append(state.get_vector()[0])
     return values
 
@@ -174,6 +188,7 @@ def sweep_echo_k(
     targets: tuple[int, int] | None = None,
     delta: float | None = None,
     initial_state_index: str | Collection[Literal["0", "1", "+"]] = "0",
+    measure_basis: str | Collection[Literal["X", "Y", "Z"]] = "Z",
 ) -> SweepEchoKResult:
     if time_range is None:
         time_range = np.arange(1, 7.01, 0.25)
@@ -187,6 +202,7 @@ def sweep_echo_k(
             echo_k=k,
             delta=delta,
             initial_state_index=initial_state_index,
+            measure_basis=measure_basis,
         )
         results[k] = values
 

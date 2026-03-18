@@ -159,7 +159,6 @@ class ZXModel(Model):
         self,
         J_zx: float | None = None,
         h_y: float | None = None,
-        topology_type: Literal["chain", "lattice"] = "chain",
     ) -> None:
         if J_zx is None:
             J_zx = 1.0
@@ -167,9 +166,15 @@ class ZXModel(Model):
             h_y = 0.2
 
         for i, j in self.edges:
-            self._add_operator(J_zx, f"Z {i} X {j}")
+            self.add_Jzx([i, j], J_zx)
         for i in self.nodes:
-            self._add_operator(h_y, f"Y {i}")
+            self.add_hy(i, h_y)
+
+    def add_Jzx(self, targets: list[int], value: float):
+        self._add_operator(value, f"Z {targets[0]} X {targets[1]}")
+
+    def add_hy(self, target: int, value: float):
+        self._add_operator(value, f"Y {target}")
 
     def get_observable(self) -> qs.Observable:
         return self.observable
