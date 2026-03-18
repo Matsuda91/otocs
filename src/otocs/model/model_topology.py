@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 
 import matplotlib.pyplot as plt
 import networkx as nx
@@ -16,6 +17,14 @@ class Topology(ABC):
 
     @abstractmethod
     def plot(self, ax=None):
+        pass
+
+    @abstractmethod
+    def remove_nodes(self, targets: list[int]) -> None:
+        pass
+
+    @abstractmethod
+    def remove_edges(self, targets: list[Sequence[int]]) -> None:
         pass
 
 
@@ -39,6 +48,7 @@ class Lattice(Topology):
         self.graph: nx.Graph = nx.grid_2d_graph(Lx, Ly)
         node_list: list[tuple[int, int]] = list(self.graph.nodes())
         self._node_to_qubit = {node: i for i, node in enumerate(node_list)}
+        self._qubit_to_node = {i: node for node, i in self._node_to_qubit.items()}
 
     def qubit_index(self, node: tuple[int, int]):
         return self._node_to_qubit[node]
@@ -55,7 +65,27 @@ class Lattice(Topology):
 
     @property
     def nodes(self):
-        return [i for i in range(self.num_qubit)]
+        return [self._node_to_qubit[node] for node in self.graph.nodes()]
+
+    def remove_nodes(self, targets: list[int]) -> None:
+        for node in targets:
+            if not isinstance(node, int):
+                raise TypeError("Each node target must be an integer.")
+            graph_node = self._qubit_to_node.get(node)
+            if graph_node is None or not self.graph.has_node(graph_node):
+                raise ValueError(f"Node {node} does not exist in lattice topology.")
+            self.graph.remove_node(graph_node)
+
+    def remove_edges(self, targets: list[Sequence[int]]) -> None:
+        for edge in targets:
+            if len(edge) != 2:
+                raise ValueError("Each edge must have exactly two node indices.")
+            i, j = int(edge[0]), int(edge[1])
+            u = self._qubit_to_node.get(i)
+            v = self._qubit_to_node.get(j)
+            if u is None or v is None or not self.graph.has_edge(u, v):
+                raise ValueError(f"Edge ({i}, {j}) does not exist in lattice topology.")
+            self.graph.remove_edge(u, v)
 
     def plot(self, ax=None):
         if ax is None:
@@ -79,6 +109,7 @@ class Chain(Topology):
         self.graph: nx.Graph = nx.path_graph(num_qubit)
         node_list = list(self.graph.nodes())
         self._node_to_qubit = {node: i for i, node in enumerate(node_list)}
+        self._qubit_to_node = {i: node for node, i in self._node_to_qubit.items()}
 
     @property
     def edges(self):
@@ -91,7 +122,27 @@ class Chain(Topology):
 
     @property
     def nodes(self):
-        return list(range(self.num_qubit))
+        return [self._node_to_qubit[node] for node in self.graph.nodes()]
+
+    def remove_nodes(self, targets: list[int]) -> None:
+        for node in targets:
+            if not isinstance(node, int):
+                raise TypeError("Each node target must be an integer.")
+            graph_node = self._qubit_to_node.get(node)
+            if graph_node is None or not self.graph.has_node(graph_node):
+                raise ValueError(f"Node {node} does not exist in chain topology.")
+            self.graph.remove_node(graph_node)
+
+    def remove_edges(self, targets: list[Sequence[int]]) -> None:
+        for edge in targets:
+            if len(edge) != 2:
+                raise ValueError("Each edge must have exactly two node indices.")
+            i, j = int(edge[0]), int(edge[1])
+            u = self._qubit_to_node.get(i)
+            v = self._qubit_to_node.get(j)
+            if u is None or v is None or not self.graph.has_edge(u, v):
+                raise ValueError(f"Edge ({i}, {j}) does not exist in chain topology.")
+            self.graph.remove_edge(u, v)
 
     def plot(self, ax=None):
         if ax is None:

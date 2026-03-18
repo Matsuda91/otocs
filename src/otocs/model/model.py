@@ -16,50 +16,35 @@ class Model(ABC):
         self.num_qubit: int = num_qubit
         self.topology_type: Literal["chain", "lattice"] = topology_type
         self.observable: qs.Observable = qs.Observable(num_qubit)
-        self._removed_nodes: list[int] = []
-        self._removed_edges: list[tuple[int, int]] = []
+        if self.topology_type == "chain":
+            self._structure: Chain | Lattice = Chain(self.num_qubit)
+        elif self.topology_type == "lattice":
+            self._structure = Lattice(self.num_qubit)
+        else:
+            raise ValueError(f"Unsupported topology_type: {self.topology_type}")
 
     @property
     def structure(
         self,
     ) -> Chain | Lattice:
-        if self.topology_type == "chain":
-            return Chain(self.num_qubit)
-        elif self.topology_type == "lattice":
-            return Lattice(self.num_qubit)
+        return self._structure
 
     @property
     def edges(self):
-        filtered_edges = []
-        for i, j in self.structure.edges:
-            edge = tuple(sorted((i, j)))
-            if i in self._removed_nodes or j in self._removed_nodes:
-                continue
-            if edge in self._removed_edges:
-                continue
-            filtered_edges.append([i, j])
-        return filtered_edges
+        return self.structure.edges
 
     @property
     def nodes(self):
-        return [i for i in self.structure.nodes if i not in self._removed_nodes]
+        return self.structure.nodes
 
     def plot(self, ax=None):
         return self.structure.plot(ax=ax)
 
     def remove_nodes(self, targets: list[int]) -> None:
-        for node in targets:
-            if not isinstance(node, int):
-                raise TypeError("Each node target must be an integer.")
-            if node < 0 or node >= self.num_qubit:
-                raise ValueError(f"Node index out of range: {node}")
-            self._removed_nodes.append(node)
+        self.structure.remove_nodes(targets)
 
     def remove_edges(self, targets: list[tuple[int, int]]) -> None:
-        for i, j in targets:
-            if i < 0 or i >= self.num_qubit or j < 0 or j >= self.num_qubit:
-                raise ValueError(f"Edge index out of range: ({i}, {j})")
-            self._removed_edges.append(tuple(sorted((i, j))))
+        self.structure.remove_edges(targets)
 
     @abstractmethod
     def _add_operator(self, **kwargs) -> None:
